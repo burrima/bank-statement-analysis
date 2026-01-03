@@ -236,11 +236,6 @@ def main(categories_file, statement_file, statement_type, filter_str, print_opti
                 str(row["Gutschrift"]).rjust(10),
                 row["Kategorie"].ljust(15),
                 row["Buchungstext"])
-            category = row["Kategorie"]
-            if category not in sums:
-                sums[category] = { "Belastungen": 0.0, "Gutschriften": 0.0}
-            sums[category]["Belastungen"] += row["Belastung"]
-            sums[category]["Gutschriften"] += row["Gutschrift"]
 
     if "summary" in print_options:
         for i, row in enumerate(table):
