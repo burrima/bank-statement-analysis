@@ -47,6 +47,21 @@ def load_categories(path):
     return categories
 
 
+def store_categories(categories, path):
+    """
+    Store categories to yaml file.
+    """
+    class MyDumper(yaml.Dumper):
+        # Required to fix indentation, see:
+        # https://stackoverflow.com/questions/25108581/python-yaml-dump-bad-indentation
+        def increase_indent(self, flow=False, indentless=False):
+            return super(MyDumper, self).increase_indent(flow, False)
+
+    with open(path, "w") as f:
+        yaml.dump(categories, f, Dumper=MyDumper, default_flow_style=False, encoding='utf-8',
+                  indent=2, allow_unicode=True)
+
+
 def invert_categories(categories):
     """
     Invert the categories dictionary.
@@ -145,6 +160,18 @@ def load_bank_statement_raiffeisen(path):
     return final_table
 
 
+def load_bank_statement(statement_file, statement_type):
+    match statement_type:
+        case "Raiffeisen":
+            table = load_bank_statement_raiffeisen(statement_file)
+        case "AKB":
+            table = load_bank_statement_akb(statement_file)
+        case _:
+            raise ValueError(f"{statement_type=} not supported!")
+
+    return table
+
+
 def add_category(table, categories):
     """
     Add a category to each row in the table according to the category definitions.
@@ -167,30 +194,47 @@ def apply_filter(table, filter_str, categories):
     """
     Create new table which only contains rows matching the given filter string.
     """
+    if len(filter_str) == 0:
+        return table
+
+    # Prepare a table of filters to be applied later:
+    filters = []
+    for filter_part in filter_str.split(","):
+        filter_part = filter_part.strip()
+        for operator in ["=", "<", ">", "?"]:
+            if operator not in filter_part:
+                continue
+            key, value = filter_part.split(operator)
+            for fullkey in table[0].keys():
+                if key in fullkey:
+                    key = fullkey
+                    break
+            if key == "KategorieIdx":
+                key = "Kategorie"
+                value = list(categories.keys())[int(value)]
+            match operator:
+                case "=":
+                    is_match_func = lambda a: a == value
+                case "<":
+                    is_match_func = lambda a: float(a) < float(value)
+                case ">":
+                    is_match_func = lambda a: float(a) > float(value)
+                case "?":
+                    is_match_func = lambda a: value in a
+            filters.append({
+                "operator": operator,
+                "key": key,
+                "value": value,
+                "is_match": is_match_func,
+            })
+
+    # Apply filters to table:
     out_table = []
     for i, row in enumerate(table):
 
         is_match = True
-        if len(filter_str) > 0:
-            for filter_part in filter_str.split(","):
-                filter_part = filter_part.strip()
-                is_inner_match = False
-                if "=" in filter_part:
-                    key, value = filter_part.split("=")
-                    if key == "KategorieIdx":
-                        key = "Kategorie"
-                        value = list(categories.keys())[int(value)]
-                    if row[key] == value:
-                        is_inner_match = True
-                elif ">" in filter_part:
-                    key, value = filter_part.split(">")
-                    if row[key] > float(value):
-                        is_inner_match = True
-                elif "<" in filter_part:
-                    key, value = filter_part.split("<")
-                    if row[key] < float(value):
-                        is_inner_match = True
-                is_match = is_match and is_inner_match
+        for f in filters:
+            is_match = is_match and f["is_match"](row[f["key"]])
 
         if is_match:
             out_table.append(row)
@@ -198,22 +242,7 @@ def apply_filter(table, filter_str, categories):
     return out_table
 
 
-def main(categories_file, statement_file, statement_type, filter_str, print_options):
-
-    categories = load_categories(categories_file)
-
-    match statement_type:
-        case "Raiffeisen":
-            table = load_bank_statement_raiffeisen(statement_file)
-        case "AKB":
-            table = load_bank_statement_akb(statement_file)
-        case _:
-            raise ValueError(f"{statement_type=} not supported!")
-
-    table = add_category(table, categories)
-    table = apply_filter(table, filter_str, categories)
-    sums = {}
-
+def print_to_stdout(table, print_options):
     if "csv" in print_options and print_options != "csv":
         raise ValueError("Print option 'csv' cannot be combined with others!")
 
@@ -238,6 +267,7 @@ def main(categories_file, statement_file, statement_type, filter_str, print_opti
                 row["Buchungstext"])
 
     if "summary" in print_options:
+        sums = {}
         for i, row in enumerate(table):
             category = row["Kategorie"]
             if category not in sums:
@@ -245,6 +275,71 @@ def main(categories_file, statement_file, statement_type, filter_str, print_opti
             sums[category]["Belastungen"] += row["Belastung"]
             sums[category]["Gutschriften"] += row["Gutschrift"]
         pprint(sums)
+
+
+def classify_interactive(categories_file, statement_file, statement_type):
+    """
+    Go through the list of "unknown" entries and ask the user for each one what category it shall
+    belong to. Categories are auto-added to the categories.yaml file.
+
+    Categorization can be stopped with ctrl-c at any time.
+    """
+    last_idx = 0
+    while True:
+        categories = load_categories(categories_file)
+
+        table = load_bank_statement(statement_file, statement_type)
+        table = add_category(table, categories)
+
+        for i, row in enumerate(table[last_idx:]):
+            if row["Kategorie"] == "unknown":
+                print("Line of interest:\n")
+                print_to_stdout([row], "table")
+
+                print("\nEnter category number or category name",
+                      "(not existing one will be auto-created, empty string means 'unknown'):")
+                # print categories in 2 columns, which makes it a bit more complex
+                keys = ["unknown"] + sorted([k for k in categories.keys()])
+                num_lines = int(len(keys) / 2) + (1 if len(keys) % 2 != 0 else 0)
+                for j in range(num_lines):
+                    k = num_lines + j
+                    if k < len(keys):
+                        print(str(j).rjust(3), keys[j].ljust(20), str(k).rjust(3), keys[k])
+                    else:
+                        print(str(j).rjust(3), keys[j])
+                category = input("> ") or 0  # set to 0 in case of empty string
+                if category.isdigit():
+                    category = keys[int(category)]
+                logger.debug(f"{category=}")
+
+                if category == "unknown":
+                    continue
+
+                print("Define matching text string (take full string by just hitting Enter):")
+                print(" ", row["Buchungstext"])
+                text = input("> ") or row["Buchungstext"]
+                logger.debug(f"{text=}")
+
+                if category not in categories:
+                    categories[category] = list()
+                categories[category] += [text]
+
+                store_categories(categories, categories_file)
+
+                if text != row["Buchungstext"]:
+                    last_idx += i
+                    break  # break inner loop to re-load whole table
+
+
+def main(categories_file, statement_file, statement_type, filter_str, print_options):
+
+    categories = load_categories(categories_file)
+
+    table = load_bank_statement(statement_file, statement_type)
+    table = add_category(table, categories)
+    table = apply_filter(table, filter_str, categories)
+
+    print_to_stdout(table, print_options)
 
 
 if __name__ == "__main__":
@@ -259,6 +354,9 @@ if __name__ == "__main__":
                         help="Bank statement file (csv)")
     parser.add_argument("-t", "--statement_type",
                         help="Bank statement type (Raiffeisen or AKB)")
+    parser.add_argument("-i", "--interactive",
+                        help="Update categories by going through unclassified expenses",
+                        action="store_true", default=False)
     parser.add_argument("-f", "--filter",
                         help="Apply display filter (e.g. 'Kategorie=unknown,Belastung>50')",
                         default="")
@@ -275,8 +373,11 @@ if __name__ == "__main__":
     logger.debug(f"{args=}")
 
     try:
-        main(Path(args.categories), Path(args.statement), args.statement_type,
-             args.filter, args.print)
+        if args.interactive in ["1", "True", "true", True]:
+            classify_interactive(Path(args.categories), Path(args.statement), args.statement_type)
+        else:
+            main(Path(args.categories), Path(args.statement), args.statement_type,
+                 args.filter, args.print)
     except Exception as ex:
         if args.loglevel.upper() == "DEBUG":
             raise
