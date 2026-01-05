@@ -140,8 +140,16 @@ def load_bank_statement_raiffeisen(path):
 
         if i > 0 and row["Buchung"] == "":
             # Rows without booking date take their details from the previous line and the amount
-            # from the last word in the Buchungstext of the current line.
-            amount = float((row["Buchungstext"].split(" ")[-1]).replace("'", ""))
+            # from the last word in the Buchungstext of the current line (with exceptions).
+            if prev_full_row["Buchungstext"].startswith("Gutschrift"):
+                # In this and next case, the current row could contain EUR instead of CHF, thus rely
+                # on the previous full row. Gutschrift and Zahlung may only have non-full row after
+                # them!
+                amount = prev_full_row["Gutschrift"]
+            elif prev_full_row["Buchungstext"].startswith("Zahlung"):
+                amount = prev_full_row["Belastung"]
+            else:
+                amount = float((row["Buchungstext"].split(" ")[-1]).replace("'", ""))
             row["Buchungstext"] = prev_full_row["Buchungstext"] + " " + row["Buchungstext"]
             row["Buchung"] = prev_full_row["Buchung"]
             row["Valuta"] = prev_full_row["Valuta"]
