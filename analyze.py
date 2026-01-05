@@ -85,12 +85,13 @@ def load_bank_statement_akb(path):
         lines = f.readlines()
 
     table = []
-    for line in lines[1:]:
+    for i, line in enumerate(lines[1:]):
         cells = line.strip().split(";")
         text = cells[2]
         text = text.replace("\"", "")
         text = text.strip()
         row = {
+            "ID": i,
             "Buchung": cells[0],
             "Valuta": cells[1],
             "Buchungstext": text,
@@ -156,6 +157,9 @@ def load_bank_statement_raiffeisen(path):
             prev_full_row = row
 
         final_table.append(row)
+
+    for i, row in enumerate(final_table):
+        row["ID"] = i
 
     return final_table
 
@@ -242,6 +246,40 @@ def apply_filter(table, filter_str, categories):
     return out_table
 
 
+def print_as_table(table):
+    if len(table) == 0:
+        return ["[]"]  # empty table
+
+    # determine max column widths:
+    max_lengths = {}
+    for key in table[0].keys():
+        max_lengths[key] = len(key)
+        for row in table:
+            length = len(str(row[key]))
+            if length > max_lengths[key]:
+                max_lengths[key] = length
+
+    # print title:
+    title = ""
+    for key in max_lengths.keys():
+        if key in ["ID", "Belastung", "Gutschrift"]:
+            title += " " + str(key).ljust(max_lengths[key]) + " "
+        else:
+            title += str(key).ljust(max_lengths[key] + 2)
+    print(title.rstrip())
+    print("-" * len(title))
+
+    # print rows:
+    for row in table:
+        line = ""
+        for key in max_lengths.keys():
+            if key in ["ID", "Belastung", "Gutschrift"]:
+                line += " " + str(row[key]).rjust(max_lengths[key]) + " "
+            else:
+                line += str(row[key]).ljust(max_lengths[key] + 2)
+        print(line.rstrip())
+
+
 def print_to_stdout(table, print_options):
     if "csv" in print_options and print_options != "csv":
         raise ValueError("Print option 'csv' cannot be combined with others!")
@@ -257,16 +295,16 @@ def print_to_stdout(table, print_options):
                 row["Buchungstext"]]))
 
     if "table" in print_options:
-        for i, row in enumerate(table):
-            print(
-                str(i).ljust(5),
-                row["Buchung"].rjust(11),
-                str(row["Belastung"]).rjust(10),
-                str(row["Gutschrift"]).rjust(10),
-                row["Kategorie"].ljust(15),
-                row["Buchungstext"])
+        print_as_table([{
+            "ID": row["ID"],
+            "Buchung": row["Buchung"],
+            "Belastung": f"{row['Belastung']:.2f}",
+            "Gutschrift": f"{row['Gutschrift']:.2f}",
+            "Kategorie": row["Kategorie"],
+            "Buchungstext": row["Buchungstext"]} for row in table])
 
     if "summary" in print_options:
+        print("\nZusammenfassung:\n")
         sums = {}
         for i, row in enumerate(table):
             category = row["Kategorie"]
@@ -274,7 +312,12 @@ def print_to_stdout(table, print_options):
                 sums[category] = { "Belastungen": 0.0, "Gutschriften": 0.0}
             sums[category]["Belastungen"] += row["Belastung"]
             sums[category]["Gutschriften"] += row["Gutschrift"]
-        pprint(sums)
+        keys = list(sums.keys())
+        keys.sort()
+        print_as_table([{
+            "Kategorie": key,
+            "Belastungen": round(float(sums[key]["Belastungen"]), 2),
+            "Gutschriften": round(float(sums[key]["Gutschriften"]), 2) } for key in keys])
 
 
 def classify_interactive(categories_file, statement_file, statement_type):
@@ -373,6 +416,13 @@ if __name__ == "__main__":
     logger.debug(f"{args=}")
 
     try:
+        if args.categories is None:
+            raise ValueError("No categories definitions file provided!")
+        if args.statement is None:
+            raise ValueError("No bank statement file provided!")
+        if args.statement_type is None:
+            raise ValueError("Bank statement type provided!")
+
         if args.interactive in ["1", "True", "true", True]:
             classify_interactive(Path(args.categories), Path(args.statement), args.statement_type)
         else:
