@@ -320,7 +320,7 @@ def print_to_stdout(table, print_options):
             "Gutschriften": round(float(sums[key]["Gutschriften"]), 2) } for key in keys])
 
 
-def classify_interactive(categories_file, statement_file, statement_type):
+def classify_interactive(categories_file, statement_file, statement_type, filter_str):
     """
     Go through the list of "unknown" entries and ask the user for each one what category it shall
     belong to. Categories are auto-added to the categories.yaml file.
@@ -333,6 +333,7 @@ def classify_interactive(categories_file, statement_file, statement_type):
 
         table = load_bank_statement(statement_file, statement_type)
         table = add_category(table, categories)
+        table = apply_filter(table, filter_str, categories)
 
         for i, row in enumerate(table[last_idx:]):
             if row["Kategorie"] != "unknown":
@@ -429,7 +430,8 @@ if __name__ == "__main__":
             raise ValueError("Bank statement type provided!")
 
         if args.interactive in ["1", "True", "true", True]:
-            classify_interactive(Path(args.categories), Path(args.statement), args.statement_type)
+            classify_interactive(Path(args.categories), Path(args.statement), args.statement_type,
+                                 args.filter)
         else:
             main(Path(args.categories), Path(args.statement), args.statement_type,
                  args.filter, args.print)
