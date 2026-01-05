@@ -214,13 +214,13 @@ def apply_filter(table, filter_str, categories):
                 value = list(categories.keys())[int(value)]
             match operator:
                 case "=":
-                    is_match_func = lambda a: a == value
+                    is_match_func = lambda a, b: str(a) == str(b)
                 case "<":
-                    is_match_func = lambda a: float(a) < float(value)
+                    is_match_func = lambda a, b: float(a) < float(b)
                 case ">":
-                    is_match_func = lambda a: float(a) > float(value)
+                    is_match_func = lambda a, b: float(a) > float(b)
                 case "?":
-                    is_match_func = lambda a: value in a
+                    is_match_func = lambda a, b: str(b) in str(a)
             filters.append({
                 "operator": operator,
                 "key": key,
@@ -234,7 +234,7 @@ def apply_filter(table, filter_str, categories):
 
         is_match = True
         for f in filters:
-            is_match = is_match and f["is_match"](row[f["key"]])
+            is_match = is_match and f["is_match"](row[f["key"]], f["value"])
 
         if is_match:
             out_table.append(row)
