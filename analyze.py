@@ -372,7 +372,7 @@ def classify_interactive(categories_file, statement_file, statement_type, filter
 
             # Read user input:
             category = input("> ") or 0  # set to 0 in case of empty string
-            if category.isdigit():
+            if str(category).isdigit():
                 category = keys[int(category)]
             logger.debug(f"{category=}")
 
@@ -394,6 +394,10 @@ def classify_interactive(categories_file, statement_file, statement_type, filter
             if text != row["Buchungstext"]:
                 last_idx += i
                 break  # break inner loop to re-load whole table
+
+        if i + last_idx + 1 >= len(table):
+            print("No more entries to categorize!")
+            break
 
 
 def main(categories_file, statement_file, statement_type, filter_str, print_options):
