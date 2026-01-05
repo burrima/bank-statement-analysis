@@ -226,7 +226,7 @@ def apply_filter(table, filter_str, categories):
                 value = list(categories.keys())[int(value)]
             match operator:
                 case "=":
-                    is_match_func = lambda a, b: str(a) == str(b)
+                    is_match_func = lambda a, b: a == float(b) if str(a)[0].isdigit() else a == b
                 case "<":
                     is_match_func = lambda a, b: float(a) < float(b)
                 case ">":
