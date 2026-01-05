@@ -314,18 +314,26 @@ def print_to_stdout(table, print_options):
     if "summary" in print_options:
         print("\nZusammenfassung:\n")
         sums = {}
+        dummy = { "Kategorie": "", "Belastung": "-----", "Gutschrift": "-----" }
+        sums_of_sums = { "Kategorie": "GESAMT-TOTAL", "Belastung": 0.0, "Gutschrift": 0.0 }
         for i, row in enumerate(table):
             category = row["Kategorie"]
             if category not in sums:
-                sums[category] = { "Belastungen": 0.0, "Gutschriften": 0.0}
-            sums[category]["Belastungen"] += row["Belastung"]
-            sums[category]["Gutschriften"] += row["Gutschrift"]
+                sums[category] = { "Belastung": 0.0, "Gutschrift": 0.0}
+            sums[category]["Belastung"] += row["Belastung"]
+            sums[category]["Gutschrift"] += row["Gutschrift"]
+            sums_of_sums["Belastung"] += row["Belastung"]
+            sums_of_sums["Gutschrift"] += row["Gutschrift"]
         keys = list(sums.keys())
         keys.sort()
-        print_as_table([{
-            "Kategorie": key,
-            "Belastungen": round(float(sums[key]["Belastungen"]), 2),
-            "Gutschriften": round(float(sums[key]["Gutschriften"]), 2) } for key in keys])
+        table = [{"Kategorie": key,
+                  "Belastung": f"{sums[key]['Belastung']:.2f}",
+                  "Gutschrift": f"{sums[key]['Gutschrift']:.2f}"} for key in keys]
+        sums_of_sums["Belastung"] = f"{sums_of_sums['Belastung']:.2f}"
+        sums_of_sums["Gutschrift"] = f"{sums_of_sums['Gutschrift']:.2f}"
+        if len(table) > 1:
+            table += [dummy, sums_of_sums]
+        print_as_table(table)
 
 
 def classify_interactive(categories_file, statement_file, statement_type, filter_str):
