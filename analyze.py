@@ -335,43 +335,48 @@ def classify_interactive(categories_file, statement_file, statement_type):
         table = add_category(table, categories)
 
         for i, row in enumerate(table[last_idx:]):
-            if row["Kategorie"] == "unknown":
-                print("Line of interest:\n")
-                print_to_stdout([row], "table")
+            if row["Kategorie"] != "unknown":
+                continue
 
-                print("\nEnter category number or category name",
-                      "(not existing one will be auto-created, empty string means 'unknown'):")
-                # print categories in 2 columns, which makes it a bit more complex
-                keys = ["unknown"] + sorted([k for k in categories.keys()])
-                num_lines = int(len(keys) / 2) + (1 if len(keys) % 2 != 0 else 0)
-                for j in range(num_lines):
-                    k = num_lines + j
-                    if k < len(keys):
-                        print(str(j).rjust(3), keys[j].ljust(20), str(k).rjust(3), keys[k])
-                    else:
-                        print(str(j).rjust(3), keys[j])
-                category = input("> ") or 0  # set to 0 in case of empty string
-                if category.isdigit():
-                    category = keys[int(category)]
-                logger.debug(f"{category=}")
+            print("Line of interest:\n")
+            print_to_stdout([row], "table")
 
-                if category == "unknown":
-                    continue
+            print("\nEnter category number or category name",
+                  "(not existing one will be auto-created, empty string means 'unknown'):")
+            # print categories in 2 columns, which makes it a bit more complex
+            keys = ["unknown"] + sorted([k for k in categories.keys()])
+            num_lines = int(len(keys) / 2) + (1 if len(keys) % 2 != 0 else 0)
+            for j in range(num_lines):
+                k = num_lines + j
+                if k < len(keys):
+                    print(str(j).rjust(3), keys[j].ljust(20), str(k).rjust(3), keys[k])
+                else:
+                    print(str(j).rjust(3), keys[j])
 
-                print("Define matching text string (take full string by just hitting Enter):")
-                print(" ", row["Buchungstext"])
-                text = input("> ") or row["Buchungstext"]
-                logger.debug(f"{text=}")
+            # Read user input:
+            category = input("> ") or 0  # set to 0 in case of empty string
+            if category.isdigit():
+                category = keys[int(category)]
+            logger.debug(f"{category=}")
 
-                if category not in categories:
-                    categories[category] = list()
-                categories[category] += [text]
+            if category == "unknown":
+                continue
 
-                store_categories(categories, categories_file)
+            print("Define matching text string (take full string by just hitting Enter):")
+            print(" ", row["Buchungstext"])
+            # Read user input:
+            text = input("> ") or row["Buchungstext"]
+            logger.debug(f"{text=}")
 
-                if text != row["Buchungstext"]:
-                    last_idx += i
-                    break  # break inner loop to re-load whole table
+            if category not in categories:
+                categories[category] = list()
+            categories[category] += [text]
+
+            store_categories(categories, categories_file)
+
+            if text != row["Buchungstext"]:
+                last_idx += i
+                break  # break inner loop to re-load whole table
 
 
 def main(categories_file, statement_file, statement_type, filter_str, print_options):
