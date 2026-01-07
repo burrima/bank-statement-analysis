@@ -219,7 +219,7 @@ def apply_filter(table, filter_str, categories):
     filters = []
     for filter_part in filter_str.split(","):
         filter_part = filter_part.strip()
-        for operator in ["=", "<", ">", "?"]:
+        for operator in ["=", "<", ">", "?", "!"]:
             if operator not in filter_part:
                 continue
             key, value = filter_part.split(operator)
@@ -239,6 +239,8 @@ def apply_filter(table, filter_str, categories):
                     is_match_func = lambda a, b: float(a) > float(b)
                 case "?":
                     is_match_func = lambda a, b: str(b) in str(a)
+                case "!":
+                    is_match_func = lambda a, b: str(b) not in str(a)
             filters.append({
                 "operator": operator,
                 "key": key,
