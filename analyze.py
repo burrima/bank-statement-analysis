@@ -34,6 +34,12 @@ logger = logging.getLogger(__name__)
 info_text: str = dedent(
     """
     Tool to process bank statements and categorize the expenses.
+    Provides advanced filtering and reporting to further refine
+    the displayed information.
+
+    Further help can be found in:
+      * README.md 
+      * https://github.com/burrima/bank-statement-analysis
     """)
 
 
