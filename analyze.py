@@ -49,7 +49,6 @@ def load_categories(path):
     """
     with open(path, "r") as f:
         categories = yaml.safe_load(f)
-
     return categories
 
 
@@ -318,6 +317,7 @@ def print_to_stdout(table, print_options):
             "Gutschrift": f"{row['Gutschrift']:.2f}",
             "Kategorie": row["Kategorie"],
             "Buchungstext": row["Buchungstext"]} for row in table])
+        print(f"\nAnzahl Buchungen: {len(table)}")
 
     if "summary" in print_options:
         print("\nZusammenfassung:\n")
