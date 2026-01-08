@@ -124,16 +124,16 @@ the cell.
 
 And there is one more trick: Since I found it tedious to always enter the full
 column name in filters, you can now just provide a sub-string which uniquely
-identifies the column (e.g. 'text?Migros' instead of 'Buchungstext?Migros').
-Combine it with the `?` operator for even more power (e.g. 'Kat?Fahr' instead of
-'Kategorie=Fahrzeug').
+identifies the column (e.g. `'text?Migros'` instead of `'Buchungstext?Migros'`).
+Combine it with the `?` operator for even more power (e.g. `'Kat?Fahr'` instead
+of `'Kategorie=Fahrzeug'`).
 
 If you are clever, you could even define sub-categories this way. For example,
 you could define categories "Fahrzeug-Auto" and "Fahrzeug-Motorrad" and then
-filter with 'Kat?Fahr' to see all expenses related to any vehicle but 'Kat?Auto'
-to see just the expenses for the car.
+filter with `'Kat?Fahr'` to see all expenses related to any vehicle but
+`'Kat?Auto'` to see just the expenses for the car.
 
-## Iterate though categories
+## Iterate through categories
 
 There is another powerful feature: To go through all categories and for each one
 see the transactions, you can use the following filter:
@@ -150,13 +150,13 @@ The parameter `-p` controls the output:
     ./analyze.py -s ... -t ... -c ... -p table,summary
     ./analyze.py -s ... -t ... -c ... -p csv > output.csv
 
-The options "table" and "summary" can be used separate or together, while "csv"
+The options `table` and `summary` can be used separate or together, while `csv`
 can only be used stand-alone. It prints in CSV format which can be redirected
 into a file as shown in the example above.
 
 ## Ideas for the future
 
-I still have some ides which I might implement in future:
+I still have some ideas which I might implement in future:
 
   * Use regex instead of sub-string search for categorization
   * If several categories would match a transaction, prefer the one with the
