@@ -190,13 +190,12 @@ def add_category(table, categories):
 
     for row in table:
         category = "unknown"
-        text = row["Buchungstext"]
+        pat_len = 0
         for pat, cat in categories_inv.items():
-            if pat.lower() in text.lower():
+            if pat.lower() in row["Buchungstext"].lower() and len(pat) > pat_len:
                 category = cat
-                break
+                pat_len = len(pat)
         row["Kategorie"] = category
-
     return table
 
 

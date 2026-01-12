@@ -71,7 +71,9 @@ So, when the tool is run for the first time (i.e. without any categories
 defined), it will just print all transactions found in the CSV bank statement
 file, followed by the summary of total expenses and income. The user then has to
 define categories and so the output will improve and show the expenses and
-income based on categories.
+income based on categories. If there are multiple categories matching one
+transaction, the one with the longest match is taken (the longer the more
+specific). This allows to define exceptions from general patterns.
 
 To refine categories, the user has to edit the categories YAML file manually and
 re-run the tool. This is a bit an iterative process until everything is fine.
@@ -167,7 +169,5 @@ into a file as shown in the example above.
 I still have some ideas which I might implement in future:
 
   * Use regex instead of sub-string search for categorization
-  * If several categories would match a transaction, prefer the one with the
-    longest search-string (the longer the more specific)
   * Add a comment field to each category to see the purpose of a transaction
   * Add simple category-change of a transaction
