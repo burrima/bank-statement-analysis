@@ -21,7 +21,6 @@
 #
 
 from pathlib import Path
-from pprint import pprint
 from textwrap import dedent
 import argparse
 import logging
@@ -38,7 +37,7 @@ info_text: str = dedent(
     the displayed information.
 
     Further help can be found in:
-      * README.md 
+      * README.md
       * https://github.com/burrima/bank-statement-analysis
     """)
 
@@ -218,17 +217,23 @@ def apply_filter(table, filter_str, categories):
     filters = []
     for filter_part in filter_str.split(","):
         filter_part = filter_part.strip()
+
         for operator in ["=", "<", ">", "?", "!"]:
             if operator not in filter_part:
                 continue
-            key, value = filter_part.split(operator)
+
+            key = None
+            tmpkey, value = filter_part.split(operator)
             for fullkey in table[0].keys():
-                if key in fullkey:
+                if tmpkey.lower() in fullkey.lower():  # ignore case
                     key = fullkey
                     break
-            if key == "KategorieIdx":
+            if key is None and tmpkey.lower() in "KategorieIdx".lower():
                 key = "Kategorie"
                 value = list(categories.keys())[int(value)]
+            if key is None:
+                raise RuntimeError(f"Key '{tmpkey}' does not match any column name!")
+
             match operator:
                 case "=":
                     is_match_func = lambda a, b: a == float(b) if str(a)[0].isdigit() else a == b
@@ -237,9 +242,10 @@ def apply_filter(table, filter_str, categories):
                 case ">":
                     is_match_func = lambda a, b: float(a) > float(b)
                 case "?":
-                    is_match_func = lambda a, b: str(b) in str(a)
+                    is_match_func = lambda a, b: str(b).lower() in str(a).lower()  # ignore case
                 case "!":
-                    is_match_func = lambda a, b: str(b) not in str(a)
+                    is_match_func = lambda a, b: str(b).lower() not in str(a).lower()  # ignore case
+
             filters.append({
                 "operator": operator,
                 "key": key,

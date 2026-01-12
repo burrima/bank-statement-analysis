@@ -19,6 +19,11 @@ For the time being, only CSV files of the following banks are supported:
 It might work for other banks as well, probably with only minor code changes.
 You might kindly ask me to extend it for you, don't hesitate to contact me.
 
+Although it might sound silly do develop yet another tool for bank transaction
+analysis, this was a lot of fun and the script has its strengths. The only
+dependency is PyYAML. There is no big-tech, no tracking, no AI, nothing
+suspicious at all involved. It provides 100% data privacy.
+
 ## Important Note
 
 This tool, distributed under MIT license, comes without any warranty. Use it at
@@ -120,7 +125,7 @@ operation must match a valid column header, the text after the operation is the
 value which must match. The question mark operator performs a textual search of
 the given value in each cell of the specified column. The exclamation mark
 operator does the opposite of the `?`, it only matches when the value is not in
-the cell.
+the cell. Text matches are all done case-insensitive!
 
 And there is one more trick: Since I found it tedious to always enter the full
 column name in filters, you can now just provide a sub-string which uniquely
@@ -139,9 +144,12 @@ There is another powerful feature: To go through all categories and for each one
 see the transactions, you can use the following filter:
 
     ./analyze.py -s ... -t ... -c ... -f 'KategorieIdx=0'
+    ./analyze.py -s ... -t ... -c ... -f 'idx=0'  # short form
 
 This will show all transactions of category index 0. Increase the number in each
-call to iterate over the categories.
+call to iterate over the categories. The short form works because all strings
+matches are done as case-insensitive sub-strings (Note: `-f 'id=0'` will match
+the column with ID=0).
 
 ## Controlling print output
 
@@ -161,4 +169,5 @@ I still have some ideas which I might implement in future:
   * Use regex instead of sub-string search for categorization
   * If several categories would match a transaction, prefer the one with the
     longest search-string (the longer the more specific)
+  * Add a comment field to each category to see the purpose of a transaction
   * Add simple category-change of a transaction
