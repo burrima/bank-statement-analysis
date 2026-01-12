@@ -96,12 +96,10 @@ def load_bank_statement_akb(path):
         text = text.strip()
         row = {
             "ID": i,
-            "Buchung": cells[0],
-            "Valuta": cells[1],
+            "Datum": cells[0],
             "Buchungstext": text,
             "Belastung": float(cells[3].replace("'", "")) if cells[3] != "" else 0.0,
             "Gutschrift": float(cells[4].replace("'", "")) if cells[4] != "" else 0.0,
-            "Saldo": float(cells[5].replace("'", "")) if cells[5] != "" else 0.0,
         }
         table.append(row)
 
@@ -125,12 +123,10 @@ def load_bank_statement_raiffeisen(path):
         amount = float(cells[3]) if cells[3] != "" else 0.0
         booking_date = cells[1].split(" ")[0]
         row = {
-            "Buchung": booking_date,
-            "Valuta": cells[5],
+            "Datum": booking_date,
             "Buchungstext": text,
             "Belastung": -amount if amount < 0 else 0.0,
             "Gutschrift": amount if amount > 0 else 0.0,
-            "Saldo": float(cells[4]) if cells[4] != "" else 0.0,
         }
         table.append(row)
 
@@ -142,7 +138,7 @@ def load_bank_statement_raiffeisen(path):
     final_table = []
     for i, row in enumerate(table):
 
-        if i > 0 and row["Buchung"] == "":
+        if i > 0 and row["Datum"] == "":
             # Rows without booking date take their details from the previous line and the amount
             # from the last word in the Buchungstext of the current line (with exceptions).
             if prev_full_row["Buchungstext"].startswith("Gutschrift"):
@@ -155,11 +151,9 @@ def load_bank_statement_raiffeisen(path):
             else:
                 amount = float((row["Buchungstext"].split(" ")[-1]).replace("'", ""))
             row["Buchungstext"] = prev_full_row["Buchungstext"] + " " + row["Buchungstext"]
-            row["Buchung"] = prev_full_row["Buchung"]
-            row["Valuta"] = prev_full_row["Valuta"]
+            row["Datum"] = prev_full_row["Datum"]
             row["Belastung"] = amount if prev_full_row["Belastung"] != 0 else 0.0
             row["Gutschrift"] = amount if prev_full_row["Gutschrift"] != 0 else 0.0
-            row["Saldo"] = prev_full_row["Saldo"] - amount  # TODO: won't be correct!
 
             # If previous full row was the one before the current, remove it from the final table:
             if table[i-1] == prev_full_row:
@@ -306,10 +300,10 @@ def print_to_stdout(table, print_options):
         raise ValueError("Print option 'csv' cannot be combined with others!")
 
     if "csv" in print_options:
-        print(";".join(["Buchung", "Belastung", "Gutschrift", "Kategorie", "Buchungstext"]))
+        print(";".join(["Datum", "Belastung", "Gutschrift", "Kategorie", "Buchungstext"]))
         for row in table:
             print(";".join([
-                row["Buchung"],
+                row["Datum"],
                 str(row["Belastung"]),
                 str(row["Gutschrift"]),
                 row["Kategorie"],
@@ -318,7 +312,7 @@ def print_to_stdout(table, print_options):
     if "table" in print_options:
         print_as_table([{
             "ID": row["ID"],
-            "Buchung": row["Buchung"],
+            "Datum": row["Datum"],
             "Belastung": f"{row['Belastung']:.2f}",
             "Gutschrift": f"{row['Gutschrift']:.2f}",
             "Kategorie": row["Kategorie"],
