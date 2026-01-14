@@ -254,7 +254,8 @@ def print_as_table(table, keys):
     for key in keys:
         max_lengths[key] = len(key)
         for row in table:
-            length = len(str(row[key]))
+            value = row[key]
+            length = len(str(round(value, 2))) if isinstance(value, float) else len(str(value))
             if length > max_lengths[key]:
                 max_lengths[key] = length
 
@@ -303,7 +304,6 @@ def print_to_stdout(table, print_options):
         print("\nZusammenfassung:\n")
         # Generate summary dicts:
         sums = {}
-        dummy = { "Kategorie": "", "Belastung": "", "Gutschrift": "" }
         sums_of_sums = { "Kategorie": "GESAMT-TOTAL", "Belastung": 0.0, "Gutschrift": 0.0 }
         for i, row in enumerate(table):
             category = row["Kategorie"]
@@ -314,15 +314,11 @@ def print_to_stdout(table, print_options):
             sums_of_sums["Belastung"] += row["Belastung"]
             sums_of_sums["Gutschrift"] += row["Gutschrift"]
         # convert summary dicts to table:
-        keys = list(sums.keys())
-        keys.sort()
         table = [{"Kategorie": key,
-                  "Belastung": round(sums[key]['Belastung'], 2),
-                  "Gutschrift": round(sums[key]['Gutschrift'], 2)} for key in keys]
+                  "Belastung": sums[key]['Belastung'],
+                  "Gutschrift": sums[key]['Gutschrift']} for key in sorted(list(sums.keys()))]
         if len(table) > 1:
-            sums_of_sums["Belastung"] = round(sums_of_sums["Belastung"], 2)
-            sums_of_sums["Gutschrift"] = round(sums_of_sums["Gutschrift"], 2)
-            table += [dummy, sums_of_sums]
+            table += [{k: "" for k in sums_of_sums.keys()}, sums_of_sums]
         # finally print summary table:
         print_as_table(table, keys=("Kategorie", "Belastung", "Gutschrift"))
 
