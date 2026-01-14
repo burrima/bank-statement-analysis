@@ -81,6 +81,29 @@ re-run the tool. This is a bit an iterative process until everything is fine.
 This is the basic functionality: categorize and show transactions based on
 categories. The following sections explain advanced features of the tool.
 
+The following is an example of how the output may look (output is in German):
+
+    $ ./analyze.py -s statement.csv -c categories.yaml -t Raiffeisen -f "ID<5"
+     ID Datum        Belastung  Gutschrift Kategorie  Buchungstext
+    ----------------------------------------------------------------------------
+      0 2025-01-03      xxx.xx      xxx.xx Hobby      Einkauf TWINT ONLINE
+      1 2025-01-03      xxx.xx      xxx.xx Hobby      Gutschrift Hans Muster
+      2 2025-01-03      xxx.xx      xxx.xx Anlagen    Übertrag Sparkonto
+      3 2025-01-03      xxx.xx      xxx.xx Hobby      Einkauf Hobbyshop
+      4 2025-01-06      xxx.xx      xxx.xx Essen      Einkauf Food shop XY
+
+    Anzahl Buchungen: 5
+
+    Zusammenfassung:
+
+    Kategorie      Belastung  Gutschrift
+    -------------------------------------
+    Anlagen           xxx.xx      xxx.xx
+    Essen             xxx.xx      xxx.xx
+    Hobby             xxx.xx      xxx.xx
+                       -----       -----
+    GESAMT-TOTAL      xxx.xx      xxx.xx
+
 ## Interactive identification mode
 
 Finding and defining common categories is simple: find a sub-string that matches
