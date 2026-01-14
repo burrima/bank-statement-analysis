@@ -101,8 +101,11 @@ The following is an example of how the output may look (output is in German):
     Anlagen           xxx.xx      xxx.xx
     Essen             xxx.xx      xxx.xx
     Hobby             xxx.xx      xxx.xx
-                       -----       -----
+
     GESAMT-TOTAL      xxx.xx      xxx.xx
+
+The summary table always shows the totals for each category in the above table,
+as well as the grand-total of all expenses and income.
 
 ## Interactive identification mode
 

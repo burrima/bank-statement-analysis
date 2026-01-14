@@ -68,10 +68,7 @@ def store_categories(categories, path):
 
 def invert_categories(categories):
     """
-    Invert the categories dictionary.
-
-    Categories in the definition file are stored as category: list-of-matches. This method inverts
-    the data to be match: category. This allows for a faster and simpler look-up mechanism.
+    Invert the categories dictionary: key-values => value-key.
     """
     categories_inv = {}
     for category, patterns in categories.items():
@@ -91,18 +88,14 @@ def load_bank_statement_akb(path):
     table = []
     for i, line in enumerate(lines[1:]):
         cells = line.strip().split(";")
-        text = cells[2]
-        text = text.replace("\"", "")
-        text = text.strip()
         row = {
             "ID": i,
             "Datum": cells[0],
-            "Buchungstext": text,
+            "Buchungstext": cells[2].replace("\"", "").strip(),
             "Belastung": float(cells[3].replace("'", "")) if cells[3] != "" else 0.0,
             "Gutschrift": float(cells[4].replace("'", "")) if cells[4] != "" else 0.0,
         }
         table.append(row)
-
     return table
 
 
@@ -117,14 +110,10 @@ def load_bank_statement_raiffeisen(path):
     table = []
     for line in lines[1:-1]:
         cells = line.strip().split(";")
-        text = cells[2]
-        text = text.replace("\"", "")
-        text = text.strip()
         amount = float(cells[3]) if cells[3] != "" else 0.0
-        booking_date = cells[1].split(" ")[0]
         row = {
-            "Datum": booking_date,
-            "Buchungstext": text,
+            "Datum": cells[1].split(" ")[0],
+            "Buchungstext": cells[2].replace("\"", "").strip(),
             "Belastung": -amount if amount < 0 else 0.0,
             "Gutschrift": amount if amount > 0 else 0.0,
         }
@@ -164,7 +153,7 @@ def load_bank_statement_raiffeisen(path):
 
         final_table.append(row)
 
-    for i, row in enumerate(final_table):
+    for i, row in enumerate(final_table):  # set row IDs
         row["ID"] = i
 
     return final_table
@@ -178,7 +167,6 @@ def load_bank_statement(statement_file, statement_type):
             table = load_bank_statement_akb(statement_file)
         case _:
             raise ValueError(f"{statement_type=} not supported!")
-
     return table
 
 
@@ -260,13 +248,10 @@ def apply_filter(table, filter_str, categories):
     return out_table
 
 
-def print_as_table(table):
-    if len(table) == 0:
-        return ["[]"]  # empty table
-
+def print_as_table(table, keys):
     # determine max column widths:
     max_lengths = {}
-    for key in table[0].keys():
+    for key in keys:
         max_lengths[key] = len(key)
         for row in table:
             length = len(str(row[key]))
@@ -275,22 +260,22 @@ def print_as_table(table):
 
     # print title:
     title = ""
-    for key in max_lengths.keys():
-        if key in ["ID", "Belastung", "Gutschrift"]:
-            title += " " + str(key).ljust(max_lengths[key]) + " "
-        else:
-            title += str(key).ljust(max_lengths[key] + 2)
+    for key in keys:
+        title += " " + str(key).ljust(max_lengths[key]) + " "
     print(title.rstrip())
     print("-" * len(title))
 
     # print rows:
     for row in table:
         line = ""
-        for key in max_lengths.keys():
-            if key in ["ID", "Belastung", "Gutschrift"]:
-                line += " " + str(row[key]).rjust(max_lengths[key]) + " "
+        for key in keys:
+            value = row[key]
+            if isinstance(value, float):
+                line += " " + f"{value:.2f}".rjust(max_lengths[key]) + " "
+            elif isinstance(value, int):
+                line += " " + str(value).rjust(max_lengths[key]) + " "
             else:
-                line += str(row[key]).ljust(max_lengths[key] + 2)
+                line += " " + str(value).ljust(max_lengths[key]) + " "
         print(line.rstrip())
 
 
@@ -309,19 +294,16 @@ def print_to_stdout(table, print_options):
                 row["Buchungstext"]]))
 
     if "table" in print_options:
-        print_as_table([{
-            "ID": row["ID"],
-            "Datum": row["Datum"],
-            "Belastung": f"{row['Belastung']:.2f}",
-            "Gutschrift": f"{row['Gutschrift']:.2f}",
-            "Kategorie": row["Kategorie"],
-            "Buchungstext": row["Buchungstext"]} for row in table])
+        print_as_table(
+            table,
+            keys = ("ID", "Datum", "Belastung", "Gutschrift", "Kategorie", "Buchungstext"))
         print(f"\nAnzahl Buchungen: {len(table)}")
 
     if "summary" in print_options:
         print("\nZusammenfassung:\n")
+        # Generate summary dicts:
         sums = {}
-        dummy = { "Kategorie": "", "Belastung": "-----", "Gutschrift": "-----" }
+        dummy = { "Kategorie": "", "Belastung": "", "Gutschrift": "" }
         sums_of_sums = { "Kategorie": "GESAMT-TOTAL", "Belastung": 0.0, "Gutschrift": 0.0 }
         for i, row in enumerate(table):
             category = row["Kategorie"]
@@ -331,16 +313,18 @@ def print_to_stdout(table, print_options):
             sums[category]["Gutschrift"] += row["Gutschrift"]
             sums_of_sums["Belastung"] += row["Belastung"]
             sums_of_sums["Gutschrift"] += row["Gutschrift"]
+        # convert summary dicts to table:
         keys = list(sums.keys())
         keys.sort()
         table = [{"Kategorie": key,
-                  "Belastung": f"{sums[key]['Belastung']:.2f}",
-                  "Gutschrift": f"{sums[key]['Gutschrift']:.2f}"} for key in keys]
-        sums_of_sums["Belastung"] = f"{sums_of_sums['Belastung']:.2f}"
-        sums_of_sums["Gutschrift"] = f"{sums_of_sums['Gutschrift']:.2f}"
+                  "Belastung": round(sums[key]['Belastung'], 2),
+                  "Gutschrift": round(sums[key]['Gutschrift'], 2)} for key in keys]
         if len(table) > 1:
+            sums_of_sums["Belastung"] = round(sums_of_sums["Belastung"], 2)
+            sums_of_sums["Gutschrift"] = round(sums_of_sums["Gutschrift"], 2)
             table += [dummy, sums_of_sums]
-        print_as_table(table)
+        # finally print summary table:
+        print_as_table(table, keys=("Kategorie", "Belastung", "Gutschrift"))
 
 
 def classify_interactive(categories_file, statement_file, statement_type, filter_str):
