@@ -343,6 +343,7 @@ def classify_interactive(categories_file, statement_file, statement_type, filter
         table = apply_filter(table, filter_str, categories)
 
         for i, row in enumerate(table[last_idx:]):
+            last_idx += 1
             if row["Kategorie"] != "unknown":
                 continue
 
@@ -383,10 +384,9 @@ def classify_interactive(categories_file, statement_file, statement_type, filter
             store_categories(categories, categories_file)
 
             if text != row["Buchungstext"]:
-                last_idx += i
                 break  # break inner loop to re-load whole table
 
-        if i + last_idx + 1 >= len(table):
+        if last_idx >= len(table):
             print("No more entries to categorize!")
             break
 
