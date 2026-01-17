@@ -46,9 +46,13 @@ def load_categories(path):
     """
     Load categories from yaml file.
     """
-    with open(path, "r") as f:
-        categories = yaml.safe_load(f)
-    return categories
+    categories = None
+    try:
+        with open(path, "r") as f:
+            categories = yaml.safe_load(f)
+    except Exception as e:
+        logger.info(str(e))
+    return categories or {}
 
 
 def store_categories(categories, path):
